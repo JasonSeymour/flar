@@ -16,5 +16,12 @@ case $FSTYPE in
 	     eval "flarcreate -R / -X ${ARCHIVE_BASE}/${HOST}/${EXCLUDES} -L cpio -n ${HOST} ${ARCHIVE_BASE}/${HOST}/${HOST}.${DATESTAMP}.flar"
 	     printf "FLAR created\n"
 	     ;;
+	zfs) printf "Root filesystem is zfs\n"
+	     snap_array=()
+	     while IFS= read -r line; do
+	         snap_array+=( "$line" )
+	     done < <( zfs list -t snapshot -r rpool | awk '{print $1}' )
+	     printf '%s\n' "${snap_array[@]}"
+	     ;;
 esac
 
