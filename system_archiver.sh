@@ -1,5 +1,7 @@
 #!/usr/bin/bash
 
+## This script is being abandoned as Solaris 11.1 lacks a system archiver.
+
 HOST=`uname -n`
 DATESTAMP=`date "+%Y%m%d"`
 ARCHIVE_BASE=/flars/
