@@ -13,6 +13,8 @@ die "Unable to access $root or is not a directory\n" unless -d $root;
 
 opendir(my $DIR, $root) or die "Unable to open $root for reading: $!\n";
 
+my $nowDate = DateTime->now;
+
 while(my $fileObj = readdir $DIR)
 {
 	my $hostDir = $root . '/' . $fileObj;
@@ -25,12 +27,17 @@ while(my $fileObj = readdir $DIR)
 	print("Processing host: $fileObj\n");
 	$hosts{$fileObj} = 0;
 	opendir(my $SUBDIR, $hostDir) or die "Unable to open the hostname based subdirectory $hostDir: $!\n";
-	@flars = grep(/\.flar$/,readdir($SUBDIR));
+	my @flars = grep(/\.flar$/,readdir($SUBDIR));
 	foreach my $flar (@flars)
 	{
 		my ($name,$dateCode,$extension) = split(/\./,$flar);
 		my $strp = DateTime::Format::Strptime->new(pattern   => '%Y%m%d',);
 		my $snapDate = $strp->parse_datetime($dateCode);
+		my $delta = $nowDate->delta_days($snapDate);
+		my $days = $delta->days;
+		print("Snapshot $flar is $days  days\n");
+	}
+	closedir($SUBDIR);
 }
 		
 
