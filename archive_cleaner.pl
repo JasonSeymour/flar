@@ -35,7 +35,18 @@ while(my $fileObj = readdir $DIR)
 		my $snapDate = $strp->parse_datetime($dateCode);
 		my $delta = $nowDate->delta_days($snapDate);
 		my $days = $delta->days;
-		print("Snapshot $flar is $days  days\n");
+		#print("Snapshot $flar is $days days old\n");
+		# Set a flag if this snapshot is less than 32 days old so we can determine if a snapshot was missed
+		if($days < 32)
+		{
+			$hosts{$fileObj} = 1;
+		} 
+		elseif($days > 95)
+		{
+			# When snapshot files reach this age we delete them
+			unlink($flar) or die "Unable to delete $flar because: $!\n";
+		}
+
 	}
 	closedir($SUBDIR);
 }
