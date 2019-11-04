@@ -33,25 +33,27 @@ while(my $fileObj = readdir $DIR)
 		my ($name,$dateCode,$extension) = split(/\./,$flar);
 		my $strp = DateTime::Format::Strptime->new(pattern   => '%Y%m%d',);
 		my $snapDate = $strp->parse_datetime($dateCode);
-		my $delta = $nowDate->delta_days($snapDate);
+		my $delta = $nowDate->delta_md($snapDate);
 		my $days = $delta->days;
-		#print("Snapshot $flar is $days days old\n");
+		print("Datecode is $dateCode\n");
+		print("DateTime date is $snapDate->ymd\n");
+		print("Snapshot $flar is $days days old\n");
 		# Set a flag if this snapshot is less than 32 days old so we can determine if a snapshot was missed
-		if($days < 32)
-		{
-			$hosts{$fileObj} = 1;
-		} 
-		elseif($days > 95)
-		{
-			# When snapshot files reach this age we delete them
-			unlink($flar) or die "Unable to delete $flar because: $!\n";
-		}
+		#if($days < 32)
+		#{
+		#	$hosts{$fileObj} = 1;
+		#} 
+		#elsif($days > 95)
+		#{
+		#	# When snapshot files reach this age we delete them
+		#	print("Deleting $flar\n");
+		#	#unlink($flar) or die "Unable to delete $flar because: $!\n";
+		#}
 
 	}
 	closedir($SUBDIR);
 }
-		
-
-
-
 closedir($DIR);
+
+# Walk the host hash and call out any hosts without a recent snapshot
+
