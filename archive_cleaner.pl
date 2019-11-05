@@ -3,9 +3,12 @@
 use strict;
 use warnings;
 use Date::Calc qw(Today Delta_Days);
-use Net::SMTP;
+use Email::Sender::Simple qw(sendmail);
+use Email::Simple;
+use Email::Simple::Creator;
 
 my $root = '/flars';
+my %hostStatus;
 my %hosts;
 
 die "Unable to access $root or is not a directory\n" unless -d $root;
@@ -23,7 +26,7 @@ while(my $fileObj = readdir $DIR)
 	next if $fileObj eq '.' or $fileObj eq '..';	
 	# Skip the .snapshot subdirectory
 	next if $fileObj eq '.snapshot';
-	$hosts{$fileObj} = 0;
+	$hostStatus{$fileObj} = 0;
 	opendir(my $SUBDIR, $hostDir) or die "Unable to open the hostname based subdirectory $hostDir: $!\n";
 	my @flars = grep(/\.flar$/,readdir($SUBDIR));
 	foreach my $flar (@flars)
@@ -34,13 +37,18 @@ while(my $fileObj = readdir $DIR)
 		# Set a flag if this snapshot is less than 32 days old so we can determine if a snapshot was missed
 		if($ddays < 32)
 		{
-			$hosts{$fileObj} = 1;
+			$hostStatus{$fileObj} = 1;
 		} 
-		elsif($ddays > 95)
+		elsif($ddays >= 95)
 		{
 			# When snapshot files reach this age we delete them
 			my $fullPath = $hostDir . '/' . $flar;
 			unlink($fullPath) or die "Unable to delete $fullPath because: $!\n";
+		}
+		# Any snapshot that is less than 95 days old goes into a list for reporting
+		if($ddays < 95)
+		{
+			push(@{$hosts{$fileObj}}, $flar);	
 		}
 
 	}
@@ -48,27 +56,39 @@ while(my $fileObj = readdir $DIR)
 }
 closedir($DIR);
 
-# Walk the host hash and call out any hosts without a recent snapshot
-
-my $smtp = Net::SMTP->new('mailhost.sargento.com');
-$smtp->mail($ENV{USER});
-if ($smtp->to('jason.seymour@sargento.com'))
+# Now we sort the hosts into good and bad lists
+my $badMessage = "Hosts missing recent snapshot\n" . "---------------------------------------\n";
+my $goodMessage = "hosts with recent snapshot\n" . "------------------------------------\n";
+foreach my $host (keys(%hostStatus))
 {
-	$smtp->data();
-	$smtp->datasend("To: ITUnixAdmins\n");
-	$smtp->datasend("Subject: Solaris FLAR status\n");
-	$smtp->datasend("\n");
-	$smtp->datasend("Beginning of host report\n");
-	foreach my $host (keys(%hosts))
+	if($hostStatus{$host} == 0)
 	{
-		if($hosts{$host} == 0)
+		$badMessage = $badMessage . $host . ":\n";
+		foreach my $snapName ( @{$hosts{$host}} )
 		{
-			$smtp->datasend("Host $host is missing a recent flash archive\n\n");
+			$badMessage = $badMessage . "\t\- $snapName\n";
 		}
+		$badMessage = $badMessage . "\n";
+	} else {
+		$goodMessage = $goodMessage . $host . ":\n";
+		foreach my $snapName ( @{$hosts{$host}} )
+		{
+			$goodMessage = $goodMessage . "\t\- $snapName\n";
+		}
+		$goodMessage = $goodMessage . "\n";
 	}
-	$smtp->dataend();
-} else {
-	print "Error: ", $smtp->message();
 }
-$smtp->quit();
+		
+
+# Assemble and send the e-mail report
+my $msg = $badMessage . $goodMessage;
+my $email = Email::Simple->create(
+	header => [
+		To	=> '"Jason Seymour" <jason.seymour@sargento.com>',
+		From	=> '"Unix Root" <root@pllxdpsstn02.sargento.com>',
+		Subject	=> "Solaris FLAR status",
+	],
+	body	=> $msg,
+);
+sendmail($email);
 
