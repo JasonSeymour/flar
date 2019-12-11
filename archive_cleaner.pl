@@ -84,8 +84,8 @@ foreach my $host (keys(%hostStatus))
 my $msg = $badMessage . $goodMessage;
 my $email = Email::Simple->create(
 	header => [
-		To	=> '"Jason Seymour" <jason.seymour@sargento.com>',
-		From	=> '"Unix Root" <root@pllxdpsstn02.sargento.com>',
+		To	=> '"John Doe" <john.doe@generic.com>',
+		From	=> '"Root" <root@generic.com>',
 		Subject	=> "Solaris FLAR status",
 	],
 	body	=> $msg,
